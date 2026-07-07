@@ -1,0 +1,15 @@
+version: '3.9'
+services:
+  backend:
+    build: ./backend
+    ports:
+      - "8000:8000"
+    environment:
+      - SECRET_KEY=change-me
+      - OPENAI_API_KEY=
+    volumes:
+      - ./backend:/app:ro
+  frontend:
+    build: ./frontend
+    ports:
+      - "80:80"

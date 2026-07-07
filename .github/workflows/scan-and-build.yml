@@ -1,0 +1,92 @@
+name: Build and Scan Docker Images
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  build-and-scan:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v2
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+
+      - name: Build backend image (load into daemon)
+        uses: docker/build-push-action@v4
+        with:
+          context: ./backend
+          file: ./backend/Dockerfile
+          platforms:
+            - linux/amd64
+          load: true
+          tags: flash-bites-backend:ci
+
+      - name: Build frontend image (load into daemon)
+        uses: docker/build-push-action@v4
+        with:
+          context: ./frontend
+          file: ./frontend/Dockerfile
+          platforms:
+            - linux/amd64
+          load: true
+          tags: flash-bites-frontend:ci
+
+      - name: Trivy scan backend (JSON artifact)
+        uses: aquasecurity/trivy-action@v1
+        with:
+          image-ref: flash-bites-backend:ci
+          format: json
+          output: trivy-backend.json
+          exit-code: 0
+
+      - name: Upload Trivy backend report
+        uses: actions/upload-artifact@v4
+        with:
+          name: trivy-backend-report
+          path: trivy-backend.json
+
+      - name: Fail if backend has CRITICAL vulnerabilities
+        uses: aquasecurity/trivy-action@v1
+        with:
+          image-ref: flash-bites-backend:ci
+          severity: CRITICAL
+          exit-code: 1
+
+      - name: Trivy scan frontend (JSON artifact)
+        uses: aquasecurity/trivy-action@v1
+        with:
+          image-ref: flash-bites-frontend:ci
+          format: json
+          output: trivy-frontend.json
+          exit-code: 0
+
+      - name: Upload Trivy frontend report
+        uses: actions/upload-artifact@v4
+        with:
+          name: trivy-frontend-report
+          path: trivy-frontend.json
+
+      - name: Fail if frontend has CRITICAL vulnerabilities
+        uses: aquasecurity/trivy-action@v1
+        with:
+          image-ref: flash-bites-frontend:ci
+          severity: CRITICAL
+          exit-code: 1
+
+      - name: Optional: Docker Scan (Docker Hub/Snyk)
+        if: ${{ secrets.DOCKERHUB_USERNAME && secrets.DOCKERHUB_TOKEN }}
+        uses: docker/scan-action@v0.16.0
+        with:
+          image: flash-bites-backend:ci
