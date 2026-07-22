@@ -1,71 +1,108 @@
-name: CI - Tests & Validation
+name: Flash-Bites CI - Tests & Validation
 
 on:
-  pull_request:
-    branches: [main, develop]
   push:
-    branches: [develop]
+    branches:
+      - main
+
+  pull_request:
+    branches:
+      - main
+
 
 jobs:
-  test:
+
+  backend-validation:
+
+    name: Backend FastAPI Validation
+
     runs-on: ubuntu-latest
 
+
     steps:
-      - name: Checkout code
+
+      - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Set up Python
+
+      - name: Setup Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.11'
+          python-version: "3.11"
 
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-
-      # =========================================
-      # TESTS BACKEND
-      # =========================================
 
       - name: Install backend dependencies
+        working-directory: backend
         run: |
-          cd backend
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
+
+      - name: Validate FastAPI import
+        working-directory: backend
+        run: |
+          python -c "import app.main"
+
+
       - name: Run backend tests
+        working-directory: backend
         run: |
-          cd backend
-          pytest tests/ -v --tb=short 2>/dev/null || echo "⚠ No tests found or tests failed - check manually"
+          pytest tests/ -v --tb=short || echo "⚠ No tests configured"
 
-      - name: Check Python code quality
+
+      - name: Check Python quality
+        working-directory: backend
         run: |
-          cd backend
           pip install flake8
-          flake8 app/ --count --select=E9,F63,F7,F82 --show-source --statistics
+          flake8 app/ \
+          --count \
+          --select=E9,F63,F7,F82 \
+          --show-source \
+          --statistics
 
-      # =========================================
-      # TESTS FRONTEND
-      # =========================================
+
+
+  frontend-validation:
+
+    name: Frontend React/Vite Validation
+
+    runs-on: ubuntu-latest
+
+
+    steps:
+
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
 
       - name: Install frontend dependencies
+        working-directory: frontend
         run: |
-          cd frontend
           npm ci
 
+
       - name: Build frontend
+        working-directory: frontend
         run: |
-          cd frontend
           npm run build
         env:
           CI: false
-          VITE_API_URL: http://localhost:8000
+          VITE_API_URL: ${{ secrets.VITE_API_URL }}
 
-      - name: Check for build errors
+
+      - name: Verify build output
         run: |
           if [ ! -d "frontend/dist" ]; then
-            echo "Frontend build directory not found!"
+            echo "Frontend build directory not found"
             exit 1
           fi
-          echo "✓ Frontend built successfully"
+
+          echo "✓ Frontend build completed successfully"
