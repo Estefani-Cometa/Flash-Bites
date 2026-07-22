@@ -38,19 +38,23 @@ jobs:
           pip install -r requirements.txt
 
 
-      - name: Validate FastAPI import
+      - name: Verify FastAPI application import
         working-directory: backend
+        env:
+          PYTHONPATH: .
         run: |
-          python -c "import app.main"
+          python -c "from app.main import app; print('FastAPI import OK')"
 
 
       - name: Run backend tests
         working-directory: backend
+        env:
+          PYTHONPATH: .
         run: |
-          pytest tests/ -v --tb=short || echo "⚠ No tests configured"
+          pytest tests/ -v --tb=short
 
 
-      - name: Check Python quality
+      - name: Check Python code quality
         working-directory: backend
         run: |
           pip install flake8
@@ -91,18 +95,18 @@ jobs:
 
       - name: Build frontend
         working-directory: frontend
-        run: |
-          npm run build
         env:
           CI: false
           VITE_API_URL: ${{ secrets.VITE_API_URL }}
+        run: |
+          npm run build
 
 
-      - name: Verify build output
+      - name: Verify frontend build
         run: |
           if [ ! -d "frontend/dist" ]; then
             echo "Frontend build directory not found"
             exit 1
           fi
 
-          echo "✓ Frontend build completed successfully"
+          echo "Frontend build completed successfully"
