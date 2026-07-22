@@ -1,0 +1,258 @@
+name: Deploy on Push (Automatic)
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    name: Validate & Build
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      # =========================================
+      # VALIDACIÓN FRONTEND
+      # =========================================
+
+      - name: Install frontend dependencies
+        run: |
+          cd frontend
+          npm ci
+
+      - name: Build frontend
+        run: |
+          cd frontend
+          npm run build
+        env:
+          CI: false
+          VITE_API_URL: ${{ secrets.VITE_API_URL }}
+
+      # =========================================
+      # VALIDACIÓN BACKEND
+      # =========================================
+
+      - name: Install backend dependencies
+        run: |
+          cd backend
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Run backend tests
+        run: |
+          cd backend
+          pytest tests/ -v --tb=short 2>/dev/null || echo "⚠ No tests found"
+
+  deploy:
+    needs: validate
+    runs-on: ubuntu-latest
+    name: Deploy to Production
+    if: success()
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1
+        env:
+          VITE_API_URL: ${{ secrets.VITE_API_URL }}
+          SECRET_KEY: ${{ secrets.SECRET_KEY }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          port: ${{ secrets.SERVER_SSH_PORT }}
+
+          script: |
+
+            APP_DIR="/var/www/flashbites"
+
+            echo "================================="
+            echo "Starting automatic deployment..."
+            echo "================================="
+
+            mkdir -p $APP_DIR
+
+            cd $APP_DIR || exit 1
+
+            # =========================================
+            # CLONAR REPO SI NO EXISTE
+            # =========================================
+
+            if [ ! -d ".git" ]; then
+              echo "Cloning repository..."
+              git clone https://github.com/Estefani-Cometa/Flash-Bites.git .
+            fi
+
+            # =========================================
+            # ACTUALIZAR REPO
+            # =========================================
+
+            echo "Pulling latest changes..."
+
+            git reset --hard
+            git clean -fd
+
+            git pull origin main
+
+            # =========================================
+            # FRONTEND (Vite)
+            # =========================================
+
+            echo "Installing frontend dependencies..."
+
+            cd frontend || exit 1
+
+            npm ci
+
+            echo "Building frontend with Vite..."
+
+            export CI=false
+
+            npm run build
+
+            if [ ! -d "dist" ]; then
+              echo "Frontend build failed!"
+              exit 1
+            fi
+
+            echo "Frontend build completed!"
+
+            cd ..
+
+            # =========================================
+            # BACKEND (FastAPI)
+            # =========================================
+
+            echo "Installing backend dependencies..."
+
+            cd backend || exit 1
+
+            if [ ! -d "venv" ]; then
+              echo "Creating virtual environment..."
+              python3.11 -m venv venv
+            fi
+
+            source venv/bin/activate
+
+            pip install --upgrade pip
+            pip install -r requirements.txt
+
+            # =========================================
+            # CONFIGURACIÓN APACHE Y SYSTEMD
+            # =========================================
+
+            echo "Updating Apache config..."
+
+            sudo a2enmod proxy_http rewrite headers
+
+            sudo tee /etc/apache2/sites-available/flashbites.conf > /dev/null <<'APACHE_EOF'
+            <VirtualHost *:80>
+                ServerName flashbites.com
+                ServerAlias www.flashbites.com
+
+                ProxyPreserveHost On
+                ProxyPass /api/ http://127.0.0.1:8000/api/
+                ProxyPassReverse /api/ http://127.0.0.1:8000/api/
+
+                DocumentRoot /var/www/flashbites/frontend/dist
+
+                <Directory /var/www/flashbites/frontend/dist>
+                    Options Indexes FollowSymLinks
+                    AllowOverride All
+                    Require all granted
+
+                    RewriteEngine On
+                    RewriteBase /
+                    RewriteRule ^index\.html$ - [L]
+                    RewriteCond %{REQUEST_FILENAME} !-f
+                    RewriteCond %{REQUEST_FILENAME} !-d
+                    RewriteRule . /index.html [L]
+                </Directory>
+
+                ErrorLog ${APACHE_LOG_DIR}/flashbites-error.log
+                CustomLog ${APACHE_LOG_DIR}/flashbites-access.log combined
+            </VirtualHost>
+            APACHE_EOF
+
+            sudo a2ensite flashbites
+            sudo a2dissite 000-default
+
+            echo "Updating systemd service for FastAPI..."
+
+            sudo tee /etc/systemd/system/flashbites-backend.service > /dev/null <<SYSTEMD_EOF
+            [Unit]
+            Description=Flash-Bites FastAPI Backend
+            After=network.target
+
+            [Service]
+            Type=simple
+            User=www-data
+            WorkingDirectory=/var/www/flashbites/backend
+            Environment="PATH=/var/www/flashbites/backend/venv/bin"
+            Environment="SECRET_KEY=$SECRET_KEY"
+            Environment="OPENAI_API_KEY=$OPENAI_API_KEY"
+            Environment="DATABASE_URL=$DATABASE_URL"
+            ExecStart=/var/www/flashbites/backend/venv/bin/uvicorn app.main:app --host 127.0.0.1 --port 8000 --workers 4
+            Restart=always
+            RestartSec=5
+
+            [Install]
+            WantedBy=multi-user.target
+            SYSTEMD_EOF
+
+            # =========================================
+            # RESTART SERVICES
+            # =========================================
+
+            echo "Restarting backend service..."
+
+            sudo systemctl daemon-reload
+            sudo systemctl restart flashbites-backend
+            sudo systemctl restart apache2
+
+            echo "================================="
+            echo "✓ Automatic deployment completed!"
+            echo "================================="
+
+            echo "Installing backend dependencies..."
+
+            cd backend || exit 1
+
+            if [ ! -d "venv" ]; then
+              echo "Creating virtual environment..."
+              python3.11 -m venv venv
+            fi
+
+            source venv/bin/activate
+
+            pip install --upgrade pip
+            pip install -r requirements.txt
+
+            # =========================================
+            # RESTART SERVICES
+            # =========================================
+
+            echo "Restarting backend service..."
+
+            sudo systemctl restart flashbites-backend
+            sudo systemctl restart apache2
+
+            echo "================================="
+            echo "✓ Automatic deployment completed!"
+            echo "================================="

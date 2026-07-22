@@ -52,6 +52,28 @@ pytest
 docker compose up --build -d
 ```
 
+## Despliegue en VPS/Apache (Producción)
+
+Para desplegar en un servidor VPS con Apache, consulta la **[Guía de Deployment](DEPLOYMENT.md)** que incluye:
+
+- Configuración de GitHub Actions para CI/CD
+- Workflows para deployment manual y automático
+- Script de validación local (`deploy.sh`)
+- Setup del servidor VPS
+- Variables de entorno y configuración de Apache/FastAPI
+
+**Quick start (5 minutos):**
+```bash
+# 1. En tu VPS, ejecutar:
+sudo bash vps-setup.sh
+
+# 2. En GitHub, agregar secrets (ver GITHUB_SECRETS.md)
+
+# 3. Ir a GitHub Actions → Deploy to VPS (Manual) → Run workflow
+```
+
+Consulta **[QUICKSTART.md](QUICKSTART.md)** para una guía paso a paso.
+
 ## Endpoints principales
 
 - GET /health
