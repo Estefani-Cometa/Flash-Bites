@@ -1,0 +1,8 @@
+id,nombre,descripcion,ingredientes,precio,categoria
+1,Hamburguesa Clásica,Hamburguesa tradicional,"Carne de res 150 g, queso cheddar, lechuga, tomate, cebolla, salsa especial",18000,Hamburguesas
+2,Hamburguesa Doble,Hamburguesa con doble carne,"Doble carne, doble queso cheddar, lechuga, tomate, cebolla, salsa especial",25000,Hamburguesas
+3,Hamburguesa BBQ,Hamburguesa con salsa BBQ,"Carne de res, queso cheddar, tocineta, salsa BBQ, cebolla caramelizada",22000,Hamburguesas
+4,Perro Caliente,Perro caliente tradicional,"Salchicha americana, queso, papa chip, salsa de tomate, mostaza, mayonesa",12000,Perros
+5,Salchipapa,Porción de papas con salchicha,"Papa francesa, salchicha, queso rallado, salsa de queso, salsa especial",17000,Comidas rápidas
+6,Coca-Cola 400 ml,Gaseosa,"Coca-Cola 400 ml",5000,Bebidas
+7,Limonada Natural,Bebida refrescante,"Limón, agua, hielo, azúcar",6000,Bebidas

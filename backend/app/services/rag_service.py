@@ -1,64 +1,172 @@
 import os
 from pathlib import Path
-from typing import Any
 
 try:
-    from langchain_community.document_loaders import CSVLoader, PyPDFLoader
+    from langchain_community.document_loaders import (
+        CSVLoader,
+        PyPDFLoader,
+        TextLoader,
+    )
     from langchain_community.vectorstores import Chroma
     from langchain_core.embeddings import FakeEmbeddings
     from langchain_openai import OpenAIEmbeddings
     from langchain_text_splitters import RecursiveCharacterTextSplitter
-except ImportError:  # pragma: no cover - fallback for environments without langchain
-    CSVLoader = PyPDFLoader = Chroma = None
-    FakeEmbeddings = OpenAIEmbeddings = RecursiveCharacterTextSplitter = None
+except ImportError:
+    CSVLoader = None
+    PyPDFLoader = None
+    TextLoader = None
+    Chroma = None
+    FakeEmbeddings = None
+    OpenAIEmbeddings = None
+    RecursiveCharacterTextSplitter = None
 
 from app.core.config import settings
 
 
 class RAGService:
-    """Servicio simple de RAG para responder preguntas usando documentos."""
+    """
+    Servicio encargado de:
+    - Leer documentos
+    - Crear la base vectorial
+    - Buscar información relacionada
+    """
 
-    def __init__(self) -> None:
+    def __init__(self):
+
         self.persist_directory = Path(settings.chroma_persist_directory)
         self.persist_directory.mkdir(parents=True, exist_ok=True)
+
         self.documents_dir = Path(settings.documents_directory)
         self.documents_dir.mkdir(parents=True, exist_ok=True)
+
         self.embeddings = None
         self.text_splitter = None
-        if OpenAIEmbeddings is not None and FakeEmbeddings is not None and RecursiveCharacterTextSplitter is not None:
-            self.embeddings = (
-                OpenAIEmbeddings(api_key=settings.openai_api_key or os.getenv("OPENAI_API_KEY"))
-                if settings.openai_api_key or os.getenv("OPENAI_API_KEY")
-                else FakeEmbeddings(size=1536)
-            )
-            self.text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=200)
 
-    def ingest_documents(self) -> None:
-        if self.embeddings is None or self.text_splitter is None or Chroma is None or CSVLoader is None or PyPDFLoader is None:
-            return
-        documents = []
-        for file_path in self.documents_dir.glob("*"):
-            if file_path.suffix.lower() == ".pdf":
-                loader = PyPDFLoader(str(file_path))
-            elif file_path.suffix.lower() == ".csv":
-                loader = CSVLoader(str(file_path))
+        if (
+            OpenAIEmbeddings
+            and FakeEmbeddings
+            and RecursiveCharacterTextSplitter
+        ):
+
+            if settings.openai_api_key or os.getenv("OPENAI_API_KEY"):
+
+                print("🤖 OpenAI Embeddings")
+
+                self.embeddings = OpenAIEmbeddings(
+                    api_key=settings.openai_api_key
+                    or os.getenv("OPENAI_API_KEY")
+                )
+
             else:
-                continue
-            documents.extend(loader.load())
-        if not documents:
-            return
-        chunks = self.text_splitter.split_documents(documents)
-        Chroma.from_documents(chunks, self.embeddings, persist_directory=str(self.persist_directory))
 
-    def answer_question(self, question: str) -> str:
+                print("🧠 Fake Embeddings (Modo Desarrollo)")
+
+                self.embeddings = FakeEmbeddings(size=1536)
+
+            self.text_splitter = RecursiveCharacterTextSplitter(
+                chunk_size=800,
+                chunk_overlap=100,
+            )
+
+    # --------------------------------------------------------
+
+    def ingest_documents(self):
+
+        if (
+            self.embeddings is None
+            or self.text_splitter is None
+            or Chroma is None
+        ):
+            return
+
+        documents = []
+
+        print("\n========== DOCUMENTOS ==========\n")
+
+        for file in self.documents_dir.glob("*"):
+
+            try:
+
+                print(f"Leyendo {file.name}")
+
+                if file.suffix.lower() == ".pdf":
+
+                    loader = PyPDFLoader(str(file))
+
+                elif file.suffix.lower() == ".csv":
+
+                    loader = CSVLoader(str(file))
+
+                elif file.suffix.lower() == ".txt":
+
+                    loader = TextLoader(
+                        str(file),
+                        encoding="utf-8",
+                    )
+
+                else:
+                    continue
+
+                documents.extend(loader.load())
+
+            except Exception as e:
+
+                print(e)
+
+        if not documents:
+
+            print("No hay documentos")
+
+            return
+
+        chunks = self.text_splitter.split_documents(documents)
+
+        Chroma.from_documents(
+            documents=chunks,
+            embedding=self.embeddings,
+            persist_directory=str(self.persist_directory),
+        )
+
+        print(f"Base vectorial creada ({len(chunks)} fragmentos)\n")
+
+    # --------------------------------------------------------
+
+    def search(self, question):
+
         if self.embeddings is None or Chroma is None:
-            return "El módulo de RAG está listo para integrarse con documentos reales cuando se habiliten las dependencias de IA."
-        db = Chroma(persist_directory=str(self.persist_directory), embedding_function=self.embeddings)
-        docs = db.similarity_search(question, k=3)
+            return []
+
+        db = Chroma(
+            persist_directory=str(self.persist_directory),
+            embedding_function=self.embeddings,
+        )
+
+        return db.similarity_search(question, k=5)
+
+    # --------------------------------------------------------
+
+    def answer_question(self, question):
+
+        docs = self.search(question)
+
         if not docs:
-            return "No tengo información aún sobre ese tema."
-        context = "\n\n".join(doc.page_content for doc in docs)
-        return f"Contexto relevante:\n{context[:1500]}"
+
+            return "No encontré información relacionada."
+
+        return docs
+
+    # --------------------------------------------------------
+
+    def initialize(self):
+
+        try:
+
+            self.ingest_documents()
+
+        except Exception as e:
+
+            print(e)
 
 
 rag_service = RAGService()
+rag_service.initialize()
