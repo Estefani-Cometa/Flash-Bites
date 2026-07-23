@@ -1,156 +1,332 @@
 # Quick Start Guide - Flash-Bites Deployment
 
-## Checklist de Configuración (5 minutos)
+## Checklist de Configuración
 
-### ✅ Paso 1: Preparar el VPS (Una sola vez)
+### ✅ Paso 1: Preparar el repositorio
+
+Clonar el proyecto:
 
 ```bash
-# Conectarse al VPS
-ssh ubuntu@tu-vps-ip
+git clone https://github.com/Estefani-Cometa/Flash-Bites.git
 
-# Ejecutar el setup script
-curl -O https://raw.githubusercontent.com/Estefani-Cometa/Flash-Bites/main/vps-setup.sh
-sudo bash vps-setup.sh
-
-# Responder sí a todas las preguntas
+cd Flash-Bites
 ```
 
-Tiempo estimado: **3-5 minutos**
+La estructura esperada:
+
+```env
+Flash-Bites/
+│
+├── backend/
+│   ├── app/
+│   ├── requirements.txt
+│   └── Dockerfile
+│
+├── frontend/
+│   ├── src/
+│   ├── package.json
+│   └── Dockerfile
+│
+├── Dockerfile
+└── railway.json
+```
 
 ---
 
-### ✅ Paso 2: Configurar GitHub Secrets (5 minutos)
+## Deployment en Railway
 
-Ir a: **GitHub Repo → Settings → Secrets and variables → Actions**
+## ✅ Paso 2: Crear servicios en Railway
 
-Crear estos secrets:
+Crear dos servicios:
 
-| Secret | Valor | Ejemplo |
-|--------|-------|---------|
-| `SERVER_HOST` | IP o dominio del VPS | `192.168.1.100` |
-| `SERVER_USER` | Usuario SSH | `ubuntu` |
-| `SERVER_SSH_KEY` | Tu clave privada SSH (~/.ssh/id_rsa) | `-----BEGIN RSA PRIVATE KEY-----...` |
-| `SERVER_SSH_PORT` | Puerto SSH | `22` |
-| `VITE_API_URL` | URL del backend | `https://api.flashbites.com` |
-| `SECRET_KEY` | Clave segura (generar: `python3 -c "import secrets; print(secrets.token_urlsafe(32))"`) | `dGVzdC1zZWNyZXQ...` |
-| `OPENAI_API_KEY` | API key de OpenAI (opcional) | `sk-proj-xxx...` |
-| `DATABASE_URL` | URL de BD (opcional) | `postgresql://user:pass@localhost/db` |
-
-Tiempo estimado: **3-5 minutos**
+```env
+Flash-Bites Backend
+Flash-Bites Frontend
+```
 
 ---
 
-### ✅ Paso 3: Primer Deployment
+### Backend Configuration
 
-**Opción A: Desde GitHub UI (Más fácil)**
+## Source
 
-1. Ir a **Actions** en tu repositorio
-2. Seleccionar **"Deploy to VPS (Manual)"**
-3. Hacer clic en **"Run workflow"**
-4. Seleccionar environment: **production**
-5. Hacer clic en **"Run workflow"**
-6. Ver los logs en tiempo real
+Repositorio:
 
-**Opción B: Push a main (Automático)**
+```env
+Estefani-Cometa/Flash-Bites
+```
+
+Root Directory:
+
+```bash
+/
+```
+
+Dockerfile:
+
+```bash
+/Dockerfile
+```
+
+Puerto:
+
+```bash
+8000
+```
+
+Start Command:
+
+```bash
+uvicorn app.main:app --host 0.0.0.0 --port 8000
+```
+
+Variables:
+
+```env
+SECRET_KEY=tu_clave_segura
+
+OPENAI_API_KEY=tu_api_key
+
+DATABASE_URL=sqlite:///./app.db
+```
+
+URL generada:
+
+```bash
+https://flash-bites-production.up.railway.app
+```
+
+---
+
+## Frontend Configuration
+
+---
+
+ Source
+
+Repositorio:
+
+```bash
+Estefani-Cometa/Flash-Bites
+```
+
+Root Directory:
+
+```bash
+/frontend
+```
+
+Dockerfile:
+
+```bash
+/frontend/Dockerfile
+```
+
+Variable necesaria:
+
+```env
+VITE_API_URL=https://flash-bites-production.up.railway.app/api/v1
+```
+
+Puerto:
+
+```bash
+8080
+```
+
+URL generada:
+
+```bash
+https://frontend-production-bb6a.up.railway.app
+```
+
+---
+
+## Deployment automático
+
+Railway realizará deploy automáticamente al hacer:
 
 ```bash
 git add .
-git commit -m "Deploy: initial setup"
-git push origin main
-# Irá automáticamente a producción si todo valida correctamente
-```
-
-Tiempo estimado: **2-3 minutos**
-
----
-
-## Verificar que todo funciona
-
-Después de que el deployment termine:
-
-```bash
-# Conectarse al VPS
-ssh ubuntu@tu-vps-ip
-
-# Revisar estado del backend
-sudo systemctl status flashbites-backend
-
-# Ver logs del backend
-sudo journalctl -u flashbites-backend -f
-
-# Revisar estado de Apache
-sudo systemctl status apache2
-
-# Ver logs de Apache
-sudo tail -f /var/log/apache2/flashbites-error.log
-```
-
-Si ves `active (running)`, ¡todo está funcionando! ✅
-
----
-
-## URLs Después de Deployment
-
-- **Frontend:** https://flashbites.com (desde Apache)
-- **Backend API:** https://flashbites.com/api/docs (FastAPI Swagger docs)
-- **Healthcheck:** curl https://flashbites.com/api/health
-
----
-
-## Troubleshooting Rápido
-
-### Backend no inicia
-```bash
-sudo systemctl restart flashbites-backend
-sudo journalctl -u flashbites-backend -n 50  # Últimas 50 líneas
-```
-
-### Frontend no se ve
-```bash
-ls /var/www/flashbites/frontend/dist/  # Debe tener index.html
-sudo systemctl restart apache2
-```
-
-### Cambiar variables de entorno
-```bash
-# SSH al VPS
-# Editar: /etc/systemd/system/flashbites-backend.service
-sudo systemctl edit flashbites-backend
-# Hacer cambios y guardar
-sudo systemctl daemon-reload
-sudo systemctl restart flashbites-backend
-```
-
----
-
-## Despliegues posteriores
-
-Simplemente hacer push a `main`:
-
-```bash
-git add .
-git commit -m "Feature: agregar nueva funcionalidad"
+git commit -m "Update application"
 git push origin main
 ```
 
-El deployment automático se ejecutará y la app se actualizará en unos minutos.
+Proceso:
+
+```bash
+GitHub
+   ↓
+Railway
+   ↓
+Docker Build
+   ↓
+Deploy Container
+   ↓
+Production
+```
+
+Tiempo aproximado:
+
+```bash
+1-3 minutos
+```
 
 ---
 
-## Documentación Completa
+## Verificar que funciona
 
-- [DEPLOYMENT.md](DEPLOYMENT.md) - Guía detallada de deployment
-- [GITHUB_SECRETS.md](GITHUB_SECRETS.md) - Detalles sobre configuración de secrets
-- [deploy.sh](deploy.sh) - Script de validación local
+## Backend Health
+
+Abrir:
+
+```bash
+https://flash-bites-production.up.railway.app/docs
+```
+
+Debe mostrar:
+
+```bash
+FastAPI Swagger UI
+```
 
 ---
 
-## Soporte
+## Probar productos
 
-Si algo no funciona:
+Abrir:
 
-1. Revisar [Troubleshooting en DEPLOYMENT.md](DEPLOYMENT.md#troubleshooting--verification)
-2. Revisar logs en GitHub Actions
-3. Revisar logs en el VPS con `journalctl`
+```bash
+https://flash-bites-production.up.railway.app/api/v1/products
+```
 
-¡Listo! 🚀
+Respuesta esperada:
+
+```json
+{
+  "items": []
+}
+```
+
+---
+
+## Frontend
+
+Abrir:
+
+```bash
+https://frontend-production-bb6a.up.railway.app
+```
+
+Debe permitir:
+
+✅ Ver interfaz  
+✅ Cargar productos  
+✅ Crear cuenta demo  
+✅ Enviar mensajes al agente IA  
+✅ Crear pedidos  
+
+---
+
+## Troubleshooting
+
+## Error 404 en API desde frontend
+
+Síntoma:
+
+```bash
+GET frontend-url/products 404
+```
+
+Solución:
+
+Verificar:
+
+```env
+VITE_API_URL=https://flash-bites-production.up.railway.app/api/v1
+```
+
+Después hacer nuevo deploy porque Vite incorpora variables durante el build.
+
+---
+
+## Backend no inicia
+
+Revisar logs Railway:
+
+```bash
+Backend
+→ Deployments
+→ View Logs
+```
+
+Debe aparecer:
+
+```bash
+Uvicorn running on http://0.0.0.0:8000
+```
+
+---
+
+## Frontend no conecta con backend
+
+Verificar en navegador:
+
+```env
+F12
+→ Network
+```
+
+La petición correcta debe ser:
+
+```env
+https://flash-bites-production.up.railway.app/api/v1/...
+```
+
+No:
+
+```env
+https://frontend-production-bb6a.up.railway.app/...
+```
+
+---
+
+## Variables importantes
+
+## Backend
+
+```env
+SECRET_KEY=
+OPENAI_API_KEY=
+DATABASE_URL=
+```
+
+---
+
+### ""Frontend"
+
+```env
+VITE_API_URL=
+```
+
+---
+
+## Próximas mejoras
+
+- Migrar SQLite a PostgreSQL Railway
+- Configurar dominios personalizados
+- Añadir almacenamiento persistente
+- Mejorar monitoreo
+- Integrar WhatsApp Business API
+
+---
+
+## Documentación adicional
+
+- `README.md` → Información general del proyecto
+- `DEPLOYMENT.md` → Detalles técnicos de despliegue
+- `QUICKSTART.md` → Inicio rápido
+
+---
+
+¡Flash-Bites está desplegado correctamente en Railway! 🚀

@@ -1,90 +1,317 @@
-# Business AI Agent
+# Flash-Bites - Business AI Agent
 
-Business AI Agent es una aplicación modular para asistir pequeños negocios con un chatbot inteligente, gestión de clientes, productos, pedidos y facturación simulada.
+Flash-Bites es una aplicación modular para asistir pequeños negocios mediante un agente inteligente. Permite gestionar productos, clientes, pedidos, facturación simulada y comunicación mediante un chatbot con capacidades de IA/RAG.
 
 ## Arquitectura
 
-- Frontend: React + Vite + Tailwind CSS
-- Backend: FastAPI + Python
-- IA/RAG: LangChain + ChromaDB + documentos PDF/CSV
-- Base de datos: PostgreSQL listo para migrar desde SQLite
-- Despliegue: OCI con Docker Compose
+- **Frontend:** React + Vite + Tailwind CSS
+- **Backend:** FastAPI + Python
+- **IA/RAG:** LangChain + ChromaDB + documentos PDF/CSV
+- **Base de datos:** SQLite actualmente (preparado para migración a PostgreSQL)
+- **Contenedores:** Docker
+- **Despliegue:** Railway + Docker
 
-## Requisitos
+## Aplicación en producción
+
+Frontend:
+
+```bash
+https://frontend-production-bb6a.up.railway.app
+```
+
+Backend API:
+
+```env
+https://flash-bites-production.up.railway.app
+```
+
+Documentación Swagger:
+
+```env
+https://flash-bites-production.up.railway.app/docs
+```
+
+---
+
+## Requisitos de desarrollo
 
 - Python 3.11+
 - Node.js 20+
 - Docker (opcional)
 
-## Backend
+---
+
+## Instalación Backend
+
+Entrar al backend:
 
 ```bash
 cd backend
+```
+
+Crear entorno virtual:
+
+```bash
 python -m venv .venv
-source .venv/bin/activate  # Windows: .venv\Scripts\activate
+```
+
+Activar entorno virtual:
+
+Windows:
+
+```bash
+.venv\Scripts\activate
+```
+
+Linux/Mac:
+
+```bash
+source .venv/bin/activate
+```
+
+Instalar dependencias:
+
+```bash
 pip install -r requirements.txt
+```
+
+Configurar variables:
+
+Windows:
+
+```bash
+copy .env.example .env
+```
+
+Linux/Mac:
+
+```bash
 cp .env.example .env
+```
+
+Ejecutar servidor:
+
+```bash
 uvicorn app.main:app --reload
+```
+
+API disponible en:
+
+```env
+http://localhost:8000
+```
+
+Documentación:
+
+```env
+http://localhost:8000/docs
+```
+
+---
+
+## Instalación Frontend
+
+Entrar al frontend:
+
+```bash
+cd frontend
+```
+
+Instalar dependencias:
+
+```bash
+npm install
+```
+
+Crear archivo de variables:
+
+```env
+.env
+```
+
+Agregar:
+
+```env
+VITE_API_URL=http://localhost:8000/api/v1
+```
+
+Ejecutar:
+
+```bash
+npm run dev
+```
+
+Frontend disponible en:
+
+```env
+http://localhost:5173
+```
+
+---
+
+## Variables de entorno
+
+## Backend
+
+Ejemplo:
+
+```env
+DATABASE_URL=sqlite:///./app.db
+SECRET_KEY=secret-key
+OPENAI_API_KEY=
 ```
 
 ## Frontend
 
-```bash
-cd frontend
-npm install
-npm run dev
+```env
+VITE_API_URL=https://flash-bites-production.up.railway.app/api/v1
 ```
 
+---
+
 ## Pruebas
+
+Backend:
 
 ```bash
 cd backend
 pytest
 ```
 
-## Despliegue en OCI
-
-1. Crear una instancia de Ubuntu en OCI.
-2. Instalar Docker y Docker Compose.
-3. Subir este proyecto y ejecutar:
+Frontend:
 
 ```bash
-docker compose up --build -d
+cd frontend
+npm run build
 ```
 
-## Despliegue en VPS/Apache (Producción)
+---
 
-Para desplegar en un servidor VPS con Apache, consulta la **[Guía de Deployment](DEPLOYMENT.md)** que incluye:
+## Despliegue en Railway
 
-- Configuración de GitHub Actions para CI/CD
-- Workflows para deployment manual y automático
-- Script de validación local (`deploy.sh`)
-- Setup del servidor VPS
-- Variables de entorno y configuración de Apache/FastAPI
+El proyecto está preparado para desplegarse mediante Docker en Railway.
 
-**Quick start (5 minutos):**
+### "Backend"
+
+Configuración:
+
+- Dockerfile:
+
+```env
+/Dockerfile
+```
+
+Puerto:
+
+```env
+8000
+```
+
+Comando:
+
 ```bash
-# 1. En tu VPS, ejecutar:
-sudo bash vps-setup.sh
-
-# 2. En GitHub, agregar secrets (ver GITHUB_SECRETS.md)
-
-# 3. Ir a GitHub Actions → Deploy to VPS (Manual) → Run workflow
+uvicorn app.main:app --host 0.0.0.0 --port 8000
 ```
 
-Consulta **[QUICKSTART.md](QUICKSTART.md)** para una guía paso a paso.
+```bash
+ Frontend bash
+```
+
+Configuración:
+
+- Dockerfile:
+
+```env
+/frontend/Dockerfile
+```
+
+Variables:
+
+```env
+VITE_API_URL=https://flash-bites-production.up.railway.app/api/v1
+```
+
+El frontend genera una compilación Vite y se sirve mediante Nginx.
+
+---
 
 ## Endpoints principales
 
-- GET /health
-- POST /api/v1/auth/register
-- GET /api/v1/products
-- POST /api/v1/customers
-- POST /api/v1/orders
-- GET /api/v1/orders
-- GET /api/v1/billing/invoice/{order_id}
-- POST /api/v1/chat
+## Salud
 
-## Notas
+```bash
+GET /health
+```
 
-La facturación es simulada en esta primera versión y está preparada para crecer hacia facturación electrónica y WhatsApp.
+## Autenticación
+
+```env
+POST /api/v1/auth/register
+```
+
+## Productos
+
+```env
+GET /api/v1/products
+```
+
+## Clientes
+
+```env
+POST /api/v1/customers
+```
+
+## Pedidos
+
+```env
+POST /api/v1/orders
+```
+
+```env
+GET /api/v1/orders
+```
+
+## Facturación
+
+```env
+GET /api/v1/billing/invoice/{order_id}
+```
+
+## Chat IA
+
+```env
+POST /api/v1/chat
+```
+
+---
+
+## Estado actual del proyecto
+
+✅ Frontend desplegado en Railway  
+✅ Backend desplegado en Railway  
+✅ Comunicación React → FastAPI funcionando  
+✅ API documentada con Swagger  
+✅ Arquitectura preparada para crecimiento  
+
+---
+
+## Próximas mejoras
+
+- Migración de SQLite a PostgreSQL
+- Autenticación avanzada con roles
+- Integración con WhatsApp Business API
+- Facturación electrónica
+- Persistencia avanzada para documentos RAG
+- Monitoreo y métricas de producción
+
+---
+
+## Deployment
+
+Aplicación desplegada correctamente en Railway:
+
+![Railway Deployment](docs/images/railway-deploy.png)
+
+## Licencia
+
+Proyecto desarrollado como solución modular para automatización inteligente de pequeños negocios.
