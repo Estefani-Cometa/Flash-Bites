@@ -22,7 +22,7 @@ https://frontend-production-bb6a.up.railway.app
 Backend API:
 
 ```env
-https://flash-bites-production.up.railway.app
+https://flash-bites-production.up.railway.app/health
 ```
 
 Documentación Swagger:
