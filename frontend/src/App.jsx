@@ -42,7 +42,7 @@ function App() {
     try {
       const res = await api.post("/auth/register", {
         email: "demo@business.com",
-        password: "demo123",
+        password: "demo1234",
         full_name: "Demo Owner",
       });
 
@@ -68,21 +68,6 @@ function App() {
       return newToken;
     } catch (error) {
       console.log(error);
-
-      // Si el usuario ya existe,
-      // intenta usar el token guardado
-
-      const savedToken = localStorage.getItem("token");
-
-      if (savedToken) {
-        setToken(savedToken);
-
-        api.defaults.headers.common[
-          "Authorization"
-        ] = `Bearer ${savedToken}`;
-
-        return savedToken;
-      }
 
       setMessages((prev) => [
         ...prev,
@@ -157,12 +142,22 @@ function App() {
       if (!currentToken) return;
     }
 
+    if (!products.length) {
+      setOrderSummary("❌ No hay productos disponibles para crear el pedido.");
+      return;
+    }
+
     try {
+      const customerRes = await api.post("/customers", {
+        name: "Demo Customer",
+        email: "demo-customer@business.com",
+      });
+
       const res = await api.post("/orders", {
-        customer_id: "cust-1",
+        customer_id: customerRes.data.id,
         items: [
           {
-            product_id: "prod-1",
+            product_id: products[0].id,
             quantity: 2,
           },
         ],

@@ -7,7 +7,7 @@ Flash-Bites utiliza una arquitectura moderna desplegada en Railway con servicios
 * **Frontend:** React + Vite + Tailwind CSS
 * **Backend:** FastAPI + Python
 * **IA/RAG:** LangChain + ChromaDB
-* **Base de datos:** SQLite actualmente, preparada para PostgreSQL
+* **Base de datos:** PostgreSQL mediante SQLAlchemy y Alembic
 * **Contenedores:** Docker
 * **CI/CD:** GitHub Actions + Railway Auto Deploy
 
@@ -120,7 +120,7 @@ La aplicación debe escuchar:
 Ejemplo:
 
 ```bash
-uvicorn app.main:app --host 0.0.0.0 --port $PORT
+alembic upgrade head && python tools/import_products.py && uvicorn app.main:app --host 0.0.0.0 --port $PORT
 ```
 
 ---
@@ -131,8 +131,9 @@ Configurar en Railway:
 
 ```bash
 SECRET_KEY=clave_segura
-OPENAI_API_KEY=tu_api_key
-DATABASE_URL=sqlite:///./app.db
+DATABASE_URL=postgresql+psycopg://usuario:password@host:5432/flash_bites
+TENANT_ID=1
+BUSINESS_NAME=Flash Bites
 ```
 
 Opcionales:
@@ -441,11 +442,7 @@ Correcto:
 uvicorn app.main:app --host 0.0.0.0 --port $PORT
 ```
 
-Incorrecto:
-
-```bash
---port 8000
-```
+En desarrollo local se permite usar el fallback `8000`; en Railway debe usarse el valor de `PORT`.
 
 ---
 

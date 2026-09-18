@@ -1,15 +1,28 @@
-version: '3.9'
 services:
   backend:
     build: ./backend
     ports:
       - "8000:8000"
+    depends_on:
+      - postgres
     environment:
       - SECRET_KEY=change-me
-      - OPENAI_API_KEY=
+      - DATABASE_URL=postgresql+psycopg://flash_bites:flash_bites@postgres:5432/flash_bites
+      - PORT=8000
+      - TENANT_ID=1
+      - BUSINESS_NAME=Flash Bites
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      - POSTGRES_USER=flash_bites
+      - POSTGRES_PASSWORD=flash_bites
+      - POSTGRES_DB=flash_bites
     volumes:
-      - ./backend:/app:ro
+      - postgres_data:/var/lib/postgresql/data
   frontend:
     build: ./frontend
     ports:
       - "80:80"
+
+volumes:
+  postgres_data:

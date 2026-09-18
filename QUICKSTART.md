@@ -71,13 +71,13 @@ Dockerfile:
 Puerto:
 
 ```bash
-8000
+${PORT}
 ```
 
 Start Command:
 
 ```bash
-uvicorn app.main:app --host 0.0.0.0 --port 8000
+python -m tools.run_migrations && python -m tools.import_products && uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000}
 ```
 
 Variables:
@@ -85,9 +85,9 @@ Variables:
 ```env
 SECRET_KEY=tu_clave_segura
 
-OPENAI_API_KEY=tu_api_key
-
-DATABASE_URL=sqlite:///./app.db
+DATABASE_URL=postgresql+psycopg://usuario:password@host:5432/flash_bites
+TENANT_ID=1
+BUSINESS_NAME=Flash Bites
 ```
 
 URL generada:
@@ -297,8 +297,9 @@ https://frontend-production-bb6a.up.railway.app/...
 
 ```env
 SECRET_KEY=
-OPENAI_API_KEY=
 DATABASE_URL=
+TENANT_ID=1
+BUSINESS_NAME=Flash Bites
 ```
 
 ---

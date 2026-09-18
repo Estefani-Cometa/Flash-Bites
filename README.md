@@ -156,9 +156,10 @@ http://localhost:5173
 Ejemplo:
 
 ```env
-DATABASE_URL=sqlite:///./app.db
+DATABASE_URL=postgresql+psycopg://usuario:password@host:5432/flash_bites
+TENANT_ID=1
+BUSINESS_NAME=Flash Bites
 SECRET_KEY=secret-key
-OPENAI_API_KEY=
 ```
 
 ## Frontend
@@ -201,16 +202,16 @@ Configuración:
 /Dockerfile
 ```
 
-Puerto:
+Puerto dinámico de Railway:
 
 ```env
-8000
+${PORT}
 ```
 
 Comando:
 
 ```bash
-uvicorn app.main:app --host 0.0.0.0 --port 8000
+python -m tools.run_migrations && python -m tools.import_products && uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000}
 ```
 
 ```bash

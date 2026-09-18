@@ -9,8 +9,16 @@ router = APIRouter(prefix="/billing", tags=["billing"])
 
 @router.get("/invoice/{order_id}")
 def generate_invoice(order_id: str, current_user: dict = Depends(get_current_user)) -> Response:
-    order = next((item for item in business_service.list_orders() if item["id"] == order_id), None)
+    order = next(
+        (
+            item
+            for item in business_service.list_orders(current_user["email"])
+            if item["id"] == order_id
+        ),
+        None,
+    )
     if not order:
         return Response(status_code=404, content="Order not found")
-    content = f"Factura simulada para pedido {order_id}\nTotal: {order['total']}"
-    return StreamingResponse(iter([content]), media_type="application/pdf")
+    content = f"Recibo de texto simulado para pedido {order_id}\nTotal: {order['total']}"
+    # TODO: generar un PDF real con reportlab o weasyprint.
+    return StreamingResponse(iter([content]), media_type="text/plain")
