@@ -1,70 +1,62 @@
+from collections.abc import Sequence
+
+
 class IntentClassifier:
-
     @staticmethod
-    def classify(message: str) -> str:
+    def classify(
+        message: str,
+        products: Sequence[dict[str, str | int]] = (),
+    ) -> str:
+        text = message.casefold()
 
-        text = message.lower()
-
-        # saludo
-        if any(word in text for word in [
-            "hola",
-            "buenas",
-            "buenos días",
-            "buenas tardes",
-            "buenas noches"
-        ]):
+        if any(
+            word in text
+            for word in (
+                "hola",
+                "buenas",
+                "buenos días",
+                "buenas tardes",
+                "buenas noches",
+            )
+        ):
             return "greeting"
 
-        # productos
-        if any(word in text for word in [
+        if any(
+            word in text
+            for word in ("pedido", "orden", "comprar", "quiero", "llevar")
+        ):
+            return "order"
+
+        product_terms = (
             "producto",
             "productos",
             "menu",
             "menú",
-            "hamburguesa",
-            "perro",
-            "salchipapa",
-            "salchiqueso",
-            "precio"
-        ]):
+            "precio",
+            "ingredientes",
+        )
+        product_tokens = {
+            token
+            for product in products
+            for field in ("name", "category")
+            for token in str(product.get(field, "")).casefold().split()
+            if len(token) >= 4
+        }
+        if any(term in text for term in product_terms) or any(
+            token in text for token in product_tokens
+        ):
             return "products"
 
-        # pedidos
-        if any(word in text for word in [
-            "pedido",
-            "orden",
-            "comprar",
-            "quiero",
-            "llevar"
-        ]):
-            return "order"
-
-        # horario
-        if any(word in text for word in [
-            "horario",
-            "hora",
-            "abren",
-            "cierran"
-        ]):
+        if any(word in text for word in ("horario", "hora", "abren", "cierran")):
             return "schedule"
 
-        # domicilio
-        if any(word in text for word in [
-            "domicilio",
-            "envío",
-            "envio",
-            "entrega"
-        ]):
+        if any(word in text for word in ("domicilio", "envío", "envio", "entrega")):
             return "delivery"
 
-        # pago
-        if any(word in text for word in [
-            "pago",
-            "nequi",
-            "daviplata",
-            "transferencia",
-            "efectivo"
-        ]):
+        if any(
+            word in text
+            for word in ("pago", "nequi", "daviplata", "transferencia", "efectivo")
+        ):
             return "payment"
 
         return "rag"
