@@ -157,12 +157,18 @@ function App() {
       if (!currentToken) return;
     }
 
+    const demoProduct = products[0];
+    if (!demoProduct) {
+      setOrderSummary("❌ No hay productos disponibles para crear el pedido.");
+      return;
+    }
+
     try {
       const res = await api.post("/orders", {
         customer_id: "cust-1",
         items: [
           {
-            product_id: "prod-1",
+            product_id: demoProduct.id,
             quantity: 2,
           },
         ],
