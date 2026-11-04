@@ -34,4 +34,4 @@ Cuando el agente presenta el menú o enumera productos para un pedido, muestra l
 
 ## Actualizar el catálogo
 
-Al agregar o modificar un producto, actualiza `backend/documents/productos.csv` conservando sus encabezados y validando que el ID sea único y el precio un entero en COP. Revisa que la interfaz de productos y el pedido demo sigan usando el ID entregado por la API, no un ID inventado o codificado aparte.
+Al agregar o modificar un producto, actualiza `backend/documents/productos.csv` conservando sus encabezados y validando que el ID sea único y el precio un entero en COP. Reinicia el backend local o vuelve a desplegarlo para cargar el catálogo actualizado. Revisa que la interfaz de productos y el pedido demo sigan usando el ID entregado por la API, no un ID inventado o codificado aparte.
