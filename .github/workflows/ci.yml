@@ -1,35 +1,26 @@
-name: Flash-Bites CI - Tests & Validation
+name: CI
 
 on:
   push:
-    branches:
-      - main
-
+    branches: [develop, main]
   pull_request:
-    branches:
-      - main
+    branches: [develop, main]
 
+permissions:
+  contents: read
 
 jobs:
-
-  backend-validation:
-
-    name: Backend FastAPI Validation
-
+  backend:
+    name: Backend CI Job
     runs-on: ubuntu-latest
-
-
     steps:
-
       - name: Checkout repository
         uses: actions/checkout@v4
 
-
-      - name: Setup Python
+      - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: "3.11"
-
 
       - name: Install backend dependencies
         working-directory: backend
@@ -37,76 +28,108 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-
       - name: Verify FastAPI application import
         working-directory: backend
         env:
           PYTHONPATH: .
-        run: |
-          python -c "from app.main import app; print('FastAPI import OK')"
-
+        run: python -c "from app.main import app; print('FastAPI import OK')"
 
       - name: Run backend tests
         working-directory: backend
         env:
           PYTHONPATH: .
-        run: |
-          pytest tests/ -v --tb=short
-
+        run: pytest tests/ -v --tb=short
 
       - name: Check Python code quality
         working-directory: backend
         run: |
           pip install flake8
-          flake8 app/ \
-          --count \
-          --select=E9,F63,F7,F82 \
-          --show-source \
-          --statistics
+          flake8 app/ --count --select=E9,F63,F7,F82 --show-source --statistics
 
-
-
-  frontend-validation:
-
-    name: Frontend React/Vite Validation
-
+  frontend:
+    name: Frontend CI Job
     runs-on: ubuntu-latest
-
-
     steps:
-
       - name: Checkout repository
         uses: actions/checkout@v4
 
-
-      - name: Setup Node.js
+      - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
           node-version: "20"
           cache: npm
           cache-dependency-path: frontend/package-lock.json
 
-
       - name: Install frontend dependencies
         working-directory: frontend
-        run: |
-          npm ci
-
+        run: npm ci --ignore-scripts
 
       - name: Build frontend
         working-directory: frontend
         env:
           CI: false
-          VITE_API_URL: ${{ secrets.VITE_API_URL }}
-        run: |
-          npm run build
+          VITE_API_URL: http://localhost:8000/api/v1
+        run: npm run build
 
+  whitespace:
+    name: Check changed lines for whitespace errors
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
-      - name: Verify frontend build
+      - name: Check changed lines
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
         run: |
-          if [ ! -d "frontend/dist" ]; then
-            echo "Frontend build directory not found"
-            exit 1
+          if [[ "$BASE_SHA" =~ ^0+$ ]]; then
+            git show --check --format= "$HEAD_SHA"
+          else
+            git diff --check "$BASE_SHA...$HEAD_SHA"
           fi
 
-          echo "Frontend build completed successfully"
+  readme-links:
+    name: Check links in README
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Check local README links
+        run: python .github/scripts/check_readme_links.py
+
+  markdown:
+    name: lint-markdown
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+
+      - name: Lint changed Markdown files
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        shell: bash
+        run: |
+          if [[ "$BASE_SHA" =~ ^0+$ ]]; then
+            mapfile -d '' markdown_files < <(git diff-tree --no-commit-id --name-only -r -z "$HEAD_SHA" -- '*.md')
+          else
+            mapfile -d '' markdown_files < <(git diff --name-only --diff-filter=ACMR -z "$BASE_SHA...$HEAD_SHA" -- '*.md')
+          fi
+
+          if (( ${#markdown_files[@]} == 0 )); then
+            echo "No Markdown files changed."
+            exit 0
+          fi
+
+          npx --yes --ignore-scripts markdownlint-cli2@0.24.0 "${markdown_files[@]}"
