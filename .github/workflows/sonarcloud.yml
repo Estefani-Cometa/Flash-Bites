@@ -1,0 +1,55 @@
+name: SonarCloud Code Analysis
+
+on:
+  push:
+    branches: [develop, main]
+  pull_request:
+    branches: [develop, main]
+
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  analyze:
+    name: Analyze Python and React
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Verify SonarCloud configuration
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_ORGANIZATION: ${{ vars.SONAR_ORGANIZATION }}
+          SONAR_PROJECT_KEY: ${{ vars.SONAR_PROJECT_KEY }}
+        run: |
+          missing=()
+          [[ -n "$SONAR_TOKEN" ]] || missing+=("SONAR_TOKEN secret")
+          [[ -n "$SONAR_ORGANIZATION" ]] || missing+=("SONAR_ORGANIZATION repository variable")
+          [[ -n "$SONAR_PROJECT_KEY" ]] || missing+=("SONAR_PROJECT_KEY repository variable")
+
+          if (( ${#missing[@]} > 0 )); then
+            printf 'Missing SonarCloud settings: %s\n' "${missing[*]}" >&2
+            exit 1
+          fi
+
+      - name: Run SonarCloud analysis
+        uses: SonarSource/sonarqube-scan-action@d209202bc7d53ff1cc128f7f907dac145c9d6ae9 # v8.3.0
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_HOST_URL: https://sonarcloud.io
+        with:
+          args: >
+            -Dsonar.organization=${{ vars.SONAR_ORGANIZATION }}
+            -Dsonar.projectKey=${{ vars.SONAR_PROJECT_KEY }}
+            -Dsonar.sources=backend/app,frontend/src
+            -Dsonar.tests=backend/tests
+            -Dsonar.test.inclusions=backend/tests/**/*.py
+            -Dsonar.exclusions=backend/data/**,**/node_modules/**,**/dist/**,**/__pycache__/**
+            -Dsonar.coverage.exclusions=.github/scripts/check_readme_links.py
+            -Dsonar.python.version=3.11
+            -Dsonar.qualitygate.wait=true

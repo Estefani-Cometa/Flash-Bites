@@ -19,7 +19,7 @@
 | --- | --- |
 | | |
 
-<!-- La CI actual se ejecuta en PR hacia main. Si este PR apunta a develop y no aparecen checks, indícalo; no reportes checks como aprobados si no corrieron. -->
+<!-- CI y análisis de SonarCloud se configuran para PR hacia develop y main. Registra solo los checks que realmente se ejecutaron. -->
 
 ## Evidencia visual
 

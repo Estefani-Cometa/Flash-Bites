@@ -111,7 +111,7 @@ Configura `VITE_API_URL` para que apunte a `http://localhost:8000/api/v1`. Vite 
 
 - [Guía para contribuir](CONTRIBUTING.md): ramas, Pull Requests y validaciones.
 - [Catálogo de productos](docs/catalogo.md): formato CSV y contrato de la API.
-- [Revisión técnica y plan de trabajo](docs/revision-y-plan.md): hallazgos, decisiones pendientes y backlog propuesto.
+- [Checks de CI](docs/gestion-github/checks.md): validaciones de Pull Request y configuración de SonarCloud.
 
 La documentación de instalación y despliegue se consolidará en `docs/` y se enlazará aquí cuando esté alineada con la configuración vigente.
 
