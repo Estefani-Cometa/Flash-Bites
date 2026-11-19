@@ -1,317 +1,131 @@
-# Flash-Bites - Business AI Agent
+# Flash-Bites
 
-Flash-Bites es una aplicación modular para asistir pequeños negocios mediante un agente inteligente. Permite gestionar productos, clientes, pedidos, facturación simulada y comunicación mediante un chatbot con capacidades de IA/RAG.
+Flash-Bites es una aplicación web para apoyar la operación de pequeños negocios de comida. Reúne un catálogo de productos, registro de clientes, gestión básica de pedidos y un asistente conversacional.
 
-## Arquitectura
+> **Estado:** proyecto en reorganización. Algunas funciones son demostrativas: clientes y pedidos se mantienen en memoria y se pierden al reiniciar el backend. La autenticación actual no persiste cuentas ni verifica contraseñas. No usar para procesar pedidos reales sin completar esos componentes.
 
-- **Frontend:** React + Vite + Tailwind CSS
-- **Backend:** FastAPI + Python
-- **IA/RAG:** LangChain + ChromaDB + documentos PDF/CSV
-- **Base de datos:** SQLite actualmente (preparado para migración a PostgreSQL)
-- **Contenedores:** Docker
-- **Despliegue:** Railway + Docker
+## Stack actual
 
-## Aplicación en producción
+- **Frontend:** React 18, Vite y Tailwind CSS.
+- **Backend:** Python, FastAPI y Pydantic.
+- **Catálogo:** archivo CSV en `backend/documents/productos.csv`.
+- **Contenedores:** Docker y Docker Compose.
+- **Asistente:** lógica de clasificación y respuestas; las dependencias y el comportamiento de RAG deben verificarse antes de considerarlo una función disponible.
 
-Frontend:
+La configuración incluye `DATABASE_URL`, pero actualmente los servicios de clientes y pedidos no usan una base de datos. La elección e implementación de persistencia se documentará antes de migrar esos datos.
 
-```bash
-https://frontend-production-bb6a.up.railway.app
+## Arquitectura y flujo
+
+La aplicación se organiza como un monolito modular: el frontend consume una API FastAPI y esta aplica las reglas del negocio. El diagrama refleja el comportamiento actual del repositorio.
+
+```mermaid
+flowchart LR
+    U[Usuario] --> UI[React + Vite]
+    UI -->|HTTP / JSON| API[API REST · FastAPI]
+    API --> P[Productos]
+    API --> C[Clientes y pedidos]
+    API --> A[Asistente]
+    P --> CSV[(Catálogo CSV)]
+    C --> MEM[(Memoria del proceso)]
+    A --> RULES[Clasificación y respuestas]
+    A -. recuperación opcional, por verificar .-> RAG[(Documentos / Chroma)]
 ```
 
-Backend API:
+Flujo de una solicitud:
 
-```env
-https://flash-bites-production.up.railway.app/health
+```mermaid
+sequenceDiagram
+    actor Usuario
+    participant Frontend as React + Vite
+    participant API as FastAPI
+    participant Servicio as Servicio de negocio
+    participant Datos as CSV o memoria del proceso
+
+    Usuario->>Frontend: Consulta catálogo o envía una acción
+    Frontend->>API: Solicitud HTTP / JSON
+    API->>Servicio: Valida y procesa la operación
+    Servicio->>Datos: Lee catálogo o accede al estado actual
+    Datos-->>Servicio: Datos disponibles
+    Servicio-->>API: Resultado
+    API-->>Frontend: Respuesta HTTP / JSON
+    Frontend-->>Usuario: Actualiza la interfaz
 ```
 
-Documentación Swagger:
+## Estructura objetivo
 
-```env
-https://flash-bites-production.up.railway.app/docs
+La reorganización de carpetas se hará gradualmente; esta es la estructura acordada, no una afirmación de que todas las carpetas ya existan.
+
+```text
+.
+├── .github/                 # Plantillas y automatización de GitHub
+├── docs/
+│   ├── arquitectura/
+│   ├── backend/
+│   ├── base-de-datos/
+│   ├── frontend/
+│   ├── gestion-github/
+│   ├── infraestructura/
+│   ├── modelado/
+│   ├── scrum/
+│   ├── ui-ux/
+│   └── README.md            # Índice de documentación
+├── backend/                 # API FastAPI
+├── frontend/                # Aplicación React + Vite
+├── database/                # Migraciones y scripts de datos
+├── infrastructure/          # Configuración y recursos de despliegue
+├── docker-compose.yml
+├── CONTRIBUTING.md
+└── README.md
 ```
 
----
+## Ejecución local
 
-## Requisitos de desarrollo
+Requisitos: Python 3.11 o superior y Node.js 20 o superior.
 
-- Python 3.11+
-- Node.js 20+
-- Docker (opcional)
-
----
-
-## Instalación Backend
-
-Entrar al backend:
+### Backend
 
 ```bash
 cd backend
-```
-
-Crear entorno virtual:
-
-```bash
 python -m venv .venv
-```
-
-Activar entorno virtual:
-
-Windows:
-
-```bash
-.venv\Scripts\activate
-```
-
-Linux/Mac:
-
-```bash
-source .venv/bin/activate
-```
-
-Instalar dependencias:
-
-```bash
-pip install -r requirements.txt
-```
-
-Configurar variables:
-
-Windows:
-
-```bash
-copy .env.example .env
-```
-
-Linux/Mac:
-
-```bash
-cp .env.example .env
-```
-
-Ejecutar servidor:
-
-```bash
+# Windows PowerShell: .venv\Scripts\Activate.ps1
+# Linux/macOS: source .venv/bin/activate
+python -m pip install -r requirements.txt
 uvicorn app.main:app --reload
 ```
 
-API disponible en:
+La API queda en `http://localhost:8000` y su documentación interactiva en `http://localhost:8000/docs`.
 
-```env
-http://localhost:8000
-```
+### Frontend
 
-Documentación:
-
-```env
-http://localhost:8000/docs
-```
-
----
-
-## Instalación Frontend
-
-Entrar al frontend:
+En otra terminal:
 
 ```bash
 cd frontend
-```
-
-Instalar dependencias:
-
-```bash
-npm install
-```
-
-Crear archivo de variables:
-
-```env
-.env
-```
-
-Agregar:
-
-```env
-VITE_API_URL=http://localhost:8000/api/v1
-```
-
-Ejecutar:
-
-```bash
+npm ci
 npm run dev
 ```
 
-Frontend disponible en:
+Configura `VITE_API_URL` para que apunte a `http://localhost:8000/api/v1`. Vite inicia normalmente en `http://localhost:5173`.
 
-```env
-http://localhost:5173
+## Documentación
+
+- [Guía para contribuir](CONTRIBUTING.md): ramas, Pull Requests y validaciones.
+- [Catálogo de productos](docs/catalogo.md): formato CSV y contrato de la API.
+- [Revisión técnica y plan de trabajo](docs/revision-y-plan.md): hallazgos, decisiones pendientes y backlog propuesto.
+
+La documentación de instalación y despliegue se consolidará en `docs/` y se enlazará aquí cuando esté alineada con la configuración vigente.
+
+## Flujo de trabajo
+
+Todas las ramas de trabajo parten de `develop` y se integran mediante Pull Request hacia `develop`. Usa nombres breves que describan el cambio, por ejemplo `docs/arquitectura`, `fix/pedidos` o `chore/postgres`.
+
+```mermaid
+flowchart LR
+    D[develop] --> B[Rama corta desde develop]
+    B --> C[Cambio acotado y validado]
+    C --> PR[Pull Request hacia develop]
+    PR --> CI[Revisión y CI]
+    CI -->|Aprobado| D
 ```
 
----
-
-## Variables de entorno
-
-## Backend
-
-Ejemplo:
-
-```env
-DATABASE_URL=sqlite:///./app.db
-SECRET_KEY=secret-key
-OPENAI_API_KEY=
-```
-
-## Frontend
-
-```env
-VITE_API_URL=https://flash-bites-production.up.railway.app/api/v1
-```
-
----
-
-## Pruebas
-
-Backend:
-
-```bash
-cd backend
-pytest
-```
-
-Frontend:
-
-```bash
-cd frontend
-npm run build
-```
-
----
-
-## Despliegue en Railway
-
-El proyecto está preparado para desplegarse mediante Docker en Railway.
-
-### "Backend"
-
-Configuración:
-
-- Dockerfile:
-
-```env
-/Dockerfile
-```
-
-Puerto:
-
-```env
-8000
-```
-
-Comando:
-
-```bash
-uvicorn app.main:app --host 0.0.0.0 --port 8000
-```
-
-```bash
- Frontend bash
-```
-
-Configuración:
-
-- Dockerfile:
-
-```env
-/frontend/Dockerfile
-```
-
-Variables:
-
-```env
-VITE_API_URL=https://flash-bites-production.up.railway.app/api/v1
-```
-
-El frontend genera una compilación Vite y se sirve mediante Nginx.
-
----
-
-## Endpoints principales
-
-## Salud
-
-```bash
-GET /health
-```
-
-## Autenticación
-
-```env
-POST /api/v1/auth/register
-```
-
-## Productos
-
-```env
-GET /api/v1/products
-```
-
-## Clientes
-
-```env
-POST /api/v1/customers
-```
-
-## Pedidos
-
-```env
-POST /api/v1/orders
-```
-
-```env
-GET /api/v1/orders
-```
-
-## Facturación
-
-```env
-GET /api/v1/billing/invoice/{order_id}
-```
-
-## Chat IA
-
-```env
-POST /api/v1/chat
-```
-
----
-
-## Estado actual del proyecto
-
-✅ Frontend desplegado en Railway  
-✅ Backend desplegado en Railway  
-✅ Comunicación React → FastAPI funcionando  
-✅ API documentada con Swagger  
-✅ Arquitectura preparada para crecimiento  
-
----
-
-## Próximas mejoras
-
-- Migración de SQLite a PostgreSQL
-- Autenticación avanzada con roles
-- Integración con WhatsApp Business API
-- Facturación electrónica
-- Persistencia avanzada para documentos RAG
-- Monitoreo y métricas de producción
-
----
-
-## Deployment
-
-Aplicación desplegada correctamente en Railway:
-
-![Railway Deployment](docs/images/railway-deploy.png)
-
-## Licencia
-
-Proyecto desarrollado como solución modular para automatización inteligente de pequeños negocios.
+Consulta [CONTRIBUTING.md](CONTRIBUTING.md) para los pasos y criterios del Pull Request.
