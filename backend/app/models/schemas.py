@@ -15,8 +15,14 @@ class TokenResponse(BaseModel):
 class ProductOut(BaseModel):
     id: str
     name: str
-    price: float
     description: str
+    ingredients: str
+    price: int
+    category: str
+
+
+class ProductListOut(BaseModel):
+    items: list[ProductOut]
 
 
 class CustomerCreate(BaseModel):
