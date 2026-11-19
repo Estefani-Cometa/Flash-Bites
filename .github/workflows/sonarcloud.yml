@@ -50,5 +50,6 @@ jobs:
             -Dsonar.tests=backend/tests
             -Dsonar.test.inclusions=backend/tests/**/*.py
             -Dsonar.exclusions=backend/data/**,**/node_modules/**,**/dist/**,**/__pycache__/**
+            -Dsonar.coverage.exclusions=.github/scripts/check_readme_links.py
             -Dsonar.python.version=3.11
             -Dsonar.qualitygate.wait=true
