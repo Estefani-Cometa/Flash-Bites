@@ -132,4 +132,4 @@ jobs:
             exit 0
           fi
 
-          npx --yes markdownlint-cli2@0.24.0 "${markdown_files[@]}"
+          npx --yes --ignore-scripts markdownlint-cli2@0.24.0 "${markdown_files[@]}"
